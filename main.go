@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -11,9 +12,14 @@ import (
 	"github.com/joho/godotenv"
 
 	"vkBot/api"
+	"vkBot/file/cache"
 )
 
+const defHour = 8
+const cacheHourPrefix = "_cacheHour_"
+
 var ChatId = make(map[string][]int)
+var ChatTime = make(map[string][2]int)
 
 func initEnv() {
 	err := godotenv.Load(".env")
@@ -33,11 +39,19 @@ func initBot() (*tgbotapi.BotAPI, error) {
 }
 
 func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
-	time.Sleep(60 * time.Second)
 	for true {
+		fmt.Println("START")
 		var messages = make(map[string]string)
 		for _, user := range users {
-			messages[user.GetApiName()] = api.BDateMessage(user)
+			if existMessage, message := cache.Get("MESSAGES_" + user.GetApiName()); !existMessage {
+				messages[user.GetApiName()] = api.BDateMessage(user)
+				err := cache.Create("MESSAGES_"+user.GetApiName(), messages[user.GetApiName()], time.Hour).Set()
+				if err != nil {
+					fmt.Println(err)
+				}
+			} else {
+				messages[user.GetApiName()] = message
+			}
 		}
 		for key, ids := range ChatId {
 			if messages[key] == "" {
@@ -45,26 +59,44 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 			}
 			var message = messages[key]
 			for _, id := range ids {
-				if id != 0 && len(message) != 0 {
-					msg := tgbotapi.NewMessage(int64(id), key+": \n"+message)
-					_, _ = bot.Send(msg)
+				if exist, _ := cache.Get(cacheHourPrefix + strconv.Itoa(id)); !exist {
+					sId := strconv.Itoa(id)
+					hour := defHour
+					min := 0
+					if ChatTime[sId] != [2]int{} {
+						HM := ChatTime[sId]
+						hour = HM[0]
+						min = HM[1]
+					}
+					if time.Now().Hour() >= hour && time.Now().Minute() >= min {
+						if id != 0 && len(message) != 0 {
+							fmt.Println("MESSAGE SEND")
+							msg := tgbotapi.NewMessage(int64(id), key+": \n"+message)
+							_, _ = bot.Send(msg)
+						}
+						err := cache.Create(cacheHourPrefix+strconv.Itoa(id), "sended", 23*time.Hour+59*time.Minute).Set()
+						if err != nil {
+							fmt.Println(err)
+						}
+					}
 				}
 			}
-			delete(messages, key)
 		}
-
-		time.Sleep(24 * time.Hour)
+		fmt.Println("FINISH")
+		time.Sleep(time.Second * 60)
 	}
 }
 
 func main() {
 	initEnv()
+	cache.InitCache("cache")
+	getCache()
 	bot, err := initBot()
 	if err != nil {
 		panic(err)
 	}
 
-	createApi(api.VkUser{Token: os.Getenv("VK_ACCESS_TOKEN")})
+	// createApi(api.VkUser{Token: os.Getenv("VK_ACCESS_TOKEN")})
 	createApi(api.Bitrix{Url: os.Getenv("BITRIX_URL")})
 
 	u := tgbotapi.NewUpdate(0)
@@ -104,9 +136,48 @@ func observeCommands(updates tgbotapi.UpdatesChannel, bot *tgbotapi.BotAPI) {
 	}
 }
 
+func setChatIdCache() {
+	marshal, err := json.Marshal(ChatId)
+	if err != nil {
+		return
+	}
+	err = cache.CreateForever("CHAT_ID", string(marshal)).Set()
+	if err != nil {
+		return
+	}
+}
+
+func setChatTimeCache() {
+	marshal, err := json.Marshal(ChatTime)
+	if err != nil {
+		return
+	}
+	err = cache.CreateForever("CHAT_TIME", string(marshal)).Set()
+	if err != nil {
+		return
+	}
+}
+
+func getCache() {
+	if existId, ids := cache.Get("CHAT_ID"); existId {
+		err := json.Unmarshal([]byte(ids), &ChatId)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	if existTimes, times := cache.Get("CHAT_TIME"); existTimes {
+		err := json.Unmarshal([]byte(times), &ChatTime)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
 func createApi(userApi api.UserApi) {
 	api.AddApi(userApi)
-	ChatId[userApi.GetApiName()] = []int{}
+	if len(ChatId[userApi.GetApiName()]) == 0 {
+		ChatId[userApi.GetApiName()] = []int{}
+	}
 }
 
 func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi) string {
@@ -118,7 +189,27 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 		args = arrCommand[1:]
 	}
 	switch commandExec {
+	case "/hour":
+		if len(args) == 0 {
+			return ""
+		}
+		if hour, err := strconv.Atoi(args[0]); err == nil {
+			var HM [2]int
+			HM = [2]int{defHour, 0}
+			if hour < 24 && hour >= 0 {
+				HM = [2]int{hour, 0}
+			}
+			if minute, errM := strconv.Atoi(args[1]); errM == nil && minute > 0 && minute < 60 {
+				HM[1] = minute
+			}
+			ChatTime[strconv.FormatInt(chat.ID, 10)] = HM
+			cache.Flush(cacheHourPrefix + strconv.FormatInt(chat.ID, 10))
+			setChatTimeCache()
+			return "Время задано"
+		}
 	case "/kill":
+		setChatIdCache()
+		setChatTimeCache()
 		os.Exit(9)
 	case "/test":
 		return "Иди нах с такими тестами"
@@ -138,6 +229,7 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 					} else {
 						ChatId[v] = append(ChatId[v], int(chat.ID))
 					}
+					setChatIdCache()
 				}
 			}
 		}
@@ -175,6 +267,7 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 					}
 				}
 			}
+			setChatIdCache()
 		}
 
 		return result

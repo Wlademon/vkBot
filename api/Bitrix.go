@@ -15,7 +15,7 @@ const BITRIX_API = "bitrix"
 // User
 
 type BitrixUser struct {
-	Id         int64  `json:"ID"`
+	Id         string `json:"ID"`
 	FirstName  string `json:"NAME"`
 	LastName   string `json:"LAST_NAME"`
 	MiddleName string `json:"SECOND_NAME"`
@@ -23,7 +23,7 @@ type BitrixUser struct {
 }
 
 func (u BitrixUser) GetId() string {
-	return strconv.FormatInt(u.Id, 10)
+	return u.Id
 }
 
 func (u BitrixUser) GetFullName() string {
@@ -73,6 +73,7 @@ func (b Bitrix) GetUsers() ([]User, error) {
 	user := new(BitrixReq)
 	var userBA []User
 	err = json.NewDecoder(resp.Body).Decode(&user)
+	fmt.Println(user)
 	if err != nil {
 		return nil, err
 	}
