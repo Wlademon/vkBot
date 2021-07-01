@@ -1,0 +1,12 @@
+version: '2'
+
+services:
+  go:
+    build:
+      context: ./containers/go
+      dockerfile: ./Dockerfile
+    container_name: vk_bot
+    volumes:
+      - ./:/bot
+    restart: unless-stopped
+
