@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/Wlademon/vkBot/time"
 
 	"github.com/go-vk-api/vk"
 )

@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/Wlademon/vkBot/time"
 )
 
 const BITRIX_API = "bitrix"

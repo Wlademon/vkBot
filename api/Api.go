@@ -5,7 +5,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/Wlademon/vkBot/time"
 )
 
 const DATE_PERIOD_B = 15

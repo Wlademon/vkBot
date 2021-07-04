@@ -1,12 +1,13 @@
 FROM ubuntu
 
-run mkdir -p /bot
+RUN mkdir -p /bot
 
 WORKDIR /bot
 
-run apt update
-run apt-get -y --no-install-recommends install curl \
-    ca-certificates
-
+RUN apt update
+RUN apt-get -y --no-install-recommends install curl \
+    ca-certificates \
+    golang \
+    git
 
 ENTRYPOINT "/bot/init.sh"

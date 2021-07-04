@@ -6,13 +6,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
+	defTime "time"
+
+	"github.com/Wlademon/vkBot/time"
+
+	"github.com/Wlademon/vkBot/api"
+	"github.com/Wlademon/vkBot/file/cache"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
-
-	"vkBot/api"
-	"vkBot/file/cache"
 )
 
 const defHour = 8
@@ -45,7 +47,7 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 		for _, user := range users {
 			if existMessage, message := cache.Get("MESSAGES_" + user.GetApiName()); !existMessage {
 				messages[user.GetApiName()] = api.BDateMessage(user)
-				err := cache.Create("MESSAGES_"+user.GetApiName(), messages[user.GetApiName()], time.Hour).Set()
+				err := cache.Create("MESSAGES_"+user.GetApiName(), messages[user.GetApiName()], defTime.Hour).Set()
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -74,7 +76,7 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 							msg := tgbotapi.NewMessage(int64(id), key+": \n"+message)
 							_, _ = bot.Send(msg)
 						}
-						err := cache.Create(cacheHourPrefix+strconv.Itoa(id), "sended", 23*time.Hour+59*time.Minute).Set()
+						err := cache.Create(cacheHourPrefix+strconv.Itoa(id), "sended", 23*defTime.Hour+59*defTime.Minute).Set()
 						if err != nil {
 							fmt.Println(err)
 						}
@@ -83,11 +85,12 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 			}
 		}
 		fmt.Println("FINISH")
-		time.Sleep(time.Second * 60)
+		defTime.Sleep(defTime.Second * 60)
 	}
 }
 
 func main() {
+	time.InitTime("Europe/Moscow")
 	initEnv()
 	cache.InitCache("cache")
 	getCache()
@@ -126,10 +129,12 @@ func observeCommands(updates tgbotapi.UpdatesChannel, bot *tgbotapi.BotAPI) {
 			}
 		}
 		if isCommand {
-			returnMessage := runCommand(update.Message.Text, update.Message.Chat, api.GetApiMap())
+			returnMessage, reply := runCommand(update.Message.Text, update.Message, api.GetApiMap())
 			if returnMessage != "" {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, returnMessage)
-				msg.ReplyToMessageID = update.Message.MessageID
+				if reply {
+					msg.ReplyToMessageID = update.Message.MessageID
+				}
 				_, _ = bot.Send(msg)
 			}
 		}
@@ -180,7 +185,8 @@ func createApi(userApi api.UserApi) {
 	}
 }
 
-func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi) string {
+func runCommand(command string, message *tgbotapi.Message, user map[string]api.UserApi) (string, bool) {
+	chat := message.Chat
 	arrCommand := strings.Split(strings.Trim(strings.ReplaceAll(command, "  ", " "), " "), " ")
 	commandExec := arrCommand[0]
 	commandExec = strings.Split(commandExec, "@")[0]
@@ -189,9 +195,30 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 		args = arrCommand[1:]
 	}
 	switch commandExec {
+	case "/fuckoff":
+		Entities := message.Entities
+
+		var users []string
+		for _, entry := range *Entities {
+			if entry.Type == "mention" {
+				runeText := []rune(message.Text)
+				users = append(users, string(runeText[entry.Offset:entry.Offset+entry.Length]))
+			}
+		}
+		if len(users) > 0 {
+			if len(users) == 1 {
+				return users[0] + " пошел на хуй.", false
+			}
+
+			return strings.Join(users, " , ") + " пошли вы все нахуй.", false
+		}
+
+		return "Ты сам знаешь куда тебе стоит пойти...", true
+	case "/now":
+		return time.Now().Format("2006-01-02 15:04:05"), true
 	case "/hour":
 		if len(args) == 0 {
-			return ""
+			return "", false
 		}
 		if hour, err := strconv.Atoi(args[0]); err == nil {
 			var HM [2]int
@@ -199,26 +226,28 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 			if hour < 24 && hour >= 0 {
 				HM = [2]int{hour, 0}
 			}
-			if minute, errM := strconv.Atoi(args[1]); errM == nil && minute > 0 && minute < 60 {
-				HM[1] = minute
+			if len(args) > 1 {
+				if minute, errM := strconv.Atoi(args[1]); errM == nil && minute > 0 && minute < 60 {
+					HM[1] = minute
+				}
 			}
 			ChatTime[strconv.FormatInt(chat.ID, 10)] = HM
 			cache.Flush(cacheHourPrefix + strconv.FormatInt(chat.ID, 10))
 			setChatTimeCache()
-			return "Время задано"
+			return "Время задано", true
 		}
 	case "/kill":
 		setChatIdCache()
 		setChatTimeCache()
 		os.Exit(9)
 	case "/test":
-		return "Иди нах с такими тестами"
+		return "Иди нах с такими тестами", true
 	case "/date":
-		return api.BDateMessage(user[api.BITRIX_API])
+		return api.BDateMessage(user[api.BITRIX_API]), true
 	case "/bdate":
-		return api.BDateMessage(user[api.VK_API])
+		return api.BDateMessage(user[api.VK_API]), true
 	case "/cview":
-		return strconv.Itoa(int(chat.ID))
+		return strconv.Itoa(int(chat.ID)), true
 	case "/save":
 		for _, v := range args {
 			if inArrayString(api.GetKeys(), v) != -1 {
@@ -233,7 +262,7 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 				}
 			}
 		}
-		return "Сохранено"
+		return "Сохранено", true
 	case "/view":
 		result := ""
 		for i, v := range ChatId {
@@ -245,7 +274,7 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 			result = "список пуст"
 		}
 
-		return result
+		return result, true
 	case "/clean":
 		result := ""
 		for i, v := range ChatId {
@@ -270,11 +299,11 @@ func runCommand(command string, chat *tgbotapi.Chat, user map[string]api.UserApi
 			setChatIdCache()
 		}
 
-		return result
+		return result, true
 
 	}
 
-	return ""
+	return "", false
 }
 
 func inArray(num []int, an int) int {

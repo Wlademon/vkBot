@@ -5,9 +5,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
+	defTime "time"
 
-	fileB "fileHelp/file"
+	"github.com/Wlademon/vkBot/time"
+
+	fileB "github.com/Wlademon/vkBot/file"
 )
 
 const CACHE_SEP = "|"
@@ -21,14 +23,14 @@ func InitCache(dir string) {
 type CacheFile struct {
 	Key   string
 	Value string
-	TLL   time.Duration
+	TLL   defTime.Duration
 }
 
 func CreateForever(key string, value string) CacheFile {
 	return Create(key, value, 0)
 }
 
-func Create(key string, value string, tll time.Duration) CacheFile {
+func Create(key string, value string, tll defTime.Duration) CacheFile {
 	return CacheFile{
 		Key:   key,
 		Value: value,
