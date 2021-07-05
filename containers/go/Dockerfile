@@ -12,4 +12,6 @@ RUN apt-get -y --no-install-recommends install curl \
     build-essential \
     git
 
+COPY id_rsa.pub ~/.ssh/id_rsa.pub
+
 ENTRYPOINT "/bot/init.sh"
