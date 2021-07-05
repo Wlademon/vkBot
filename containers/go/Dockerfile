@@ -7,11 +7,14 @@ WORKDIR /bot
 RUN apt update
 RUN apt-get -y --no-install-recommends install curl \
     ca-certificates \
-    git \
     ssh \
     build-essential \
     git
 
-COPY id_rsa.pub ~/.ssh/id_rsa.pub
+RUN mkdir -p ~/.ssh
+RUN chmod 760 -R ~/.ssh
+ADD id_rsa.pub ~/.ssh/id_rsa.pub
+RUN chmod 700 ~/.ssh/id_rsa.pub
+RUN echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
 
 ENTRYPOINT "/bot/init.sh"
