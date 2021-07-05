@@ -4,12 +4,8 @@ import "time"
 
 var Location *time.Location
 
-func InitTime(locationStr string) *time.Location {
-	location, err := time.LoadLocation(locationStr)
-	if err != nil {
-		panic("Time not set.")
-	}
-	Location = location
+func InitTime(offset int) *time.Location {
+	Location = time.FixedZone("Current", offset)
 
 	return Location
 }
