@@ -90,7 +90,7 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 }
 
 func main() {
-	time.InitTime(defTime.Hour * 3)
+	time.InitTime(defTime.Hour * 3 / defTime.Second)
 	initEnv()
 	cache.InitCache("cache")
 	getCache()
