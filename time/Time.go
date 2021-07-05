@@ -4,8 +4,8 @@ import "time"
 
 var Location *time.Location
 
-func InitTime(offset int) *time.Location {
-	Location = time.FixedZone("Current", offset)
+func InitTime(offset time.Duration) *time.Location {
+	Location = time.FixedZone("Current", int(offset))
 
 	return Location
 }
