@@ -9,7 +9,8 @@ RUN apt-get -y --no-install-recommends install curl \
     ca-certificates \
     golang \
     git \
-    ssh
+    ssh \
+    build-essential
 
 ADD ./id_rsa.pub ~/.ssh/id_rsa.pub
 
