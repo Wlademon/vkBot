@@ -7,6 +7,9 @@ WORKDIR /bot
 RUN apt update
 RUN apt-get -y --no-install-recommends install curl \
     ca-certificates \
+    git \
+    ssh \
+    build-essential \
     git
 
 ENTRYPOINT "/bot/init.sh"

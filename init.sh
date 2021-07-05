@@ -4,6 +4,6 @@ rm vkBot
 
 git pull origin master
 
-go build -o vkBot -a
+ go build -o vkBot -a
 
 ./vkBot
