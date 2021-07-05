@@ -11,10 +11,10 @@ RUN apt-get -y --no-install-recommends install curl \
     build-essential \
     git
 
-RUN mkdir -p ~/.ssh
-ADD ./id_rsa.pub ~/.ssh/id_rsa.pub
-ADD ./knows_hosts ~/.ssh/knows_hosts
-RUN chmod 764 -R ~/.ssh
+RUN mkdir -p /root/.ssh
+ADD ./id_rsa.pub /root/.ssh/id_rsa.pub
+ADD ./knows_hosts /root/.ssh/knows_hosts
+RUN chmod 764 -R /root/.ssh
 RUN echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
 
 ENTRYPOINT "/bot/init.sh"
