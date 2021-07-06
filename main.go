@@ -227,6 +227,9 @@ func runCommand(command string, message *tgbotapi.Message, user map[string]api.U
 		}
 
 		return "Ты сам знаешь куда тебе стоит пойти...", true
+	case "/schedule":
+		temp := ChatTime[strconv.FormatInt(chat.ID, 10)]
+		return fmt.Sprintf("hour: %d minute: %d", temp[0], temp[1]), false
 	case "/now":
 		return time.Now().Format("2006-01-02 15:04:05"), true
 	case "/hour":
