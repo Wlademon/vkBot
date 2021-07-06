@@ -21,7 +21,7 @@ const defHour = 8
 const cacheHourPrefix = "_cacheHour_"
 
 var ChatId = make(map[string][]int)
-var ChatTime = make(map[string][2]int)
+var ChatTime = make(map[string][3]int)
 
 func initEnv() {
 	err := godotenv.Load(".env")
@@ -71,7 +71,7 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 					sId := strconv.Itoa(id)
 					hour := defHour
 					min := 0
-					if ChatTime[sId] != [2]int{} {
+					if ChatTime[sId][2] != 0 {
 						HM := ChatTime[sId]
 						hour = HM[0]
 						min = HM[1]
@@ -237,17 +237,16 @@ func runCommand(command string, message *tgbotapi.Message, user map[string]api.U
 			return "", false
 		}
 		if hour, err := strconv.Atoi(args[0]); err == nil {
-			var HM [2]int
-			HM = [2]int{defHour, 0}
+			var HM [3]int
+			HM = [3]int{defHour, 0, 1}
 			if hour < 24 && hour >= 0 {
-				HM = [2]int{hour, 0}
+				HM = [3]int{hour, 0, 1}
 			}
 			if len(args) > 1 {
 				if minute, errM := strconv.Atoi(args[1]); errM == nil && minute > 0 && minute < 60 {
 					HM[1] = minute
 				}
 			}
-			fmt.Println(HM)
 			ChatTime[strconv.FormatInt(chat.ID, 10)] = HM
 			cache.Flush(cacheHourPrefix + strconv.FormatInt(chat.ID, 10))
 			setChatTimeCache()
