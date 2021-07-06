@@ -227,6 +227,12 @@ func runCommand(command string, message *tgbotapi.Message, user map[string]api.U
 		}
 
 		return "Ты сам знаешь куда тебе стоит пойти...", true
+	case "/s_done":
+		exist, _ := cache.Get(cacheHourPrefix + strconv.FormatInt(chat.ID, 10))
+		if exist {
+			return "Выполнено", true
+		}
+		return "Ожидает выполнения", true
 	case "/schedule":
 		temp := ChatTime[strconv.FormatInt(chat.ID, 10)]
 		if temp[2] == 0 {
