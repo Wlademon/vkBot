@@ -11,8 +11,6 @@ RUN apt-get -y --no-install-recommends install curl \
     build-essential \
     git
 
-RUN chmod 777 /bot/cache -R
-
 RUN mkdir -p /root/.ssh
 ADD ./id_rsa.pub /root/.ssh/id_rsa.pub
 ADD ./knows_hosts /root/.ssh/knows_hosts

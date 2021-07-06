@@ -166,10 +166,12 @@ func setChatIdCache() {
 func setChatTimeCache() {
 	marshal, err := json.Marshal(ChatTime)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	err = cache.CreateForever("CHAT_TIME", string(marshal)).Set()
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 }
@@ -242,6 +244,7 @@ func runCommand(command string, message *tgbotapi.Message, user map[string]api.U
 					HM[1] = minute
 				}
 			}
+			fmt.Println(HM)
 			ChatTime[strconv.FormatInt(chat.ID, 10)] = HM
 			cache.Flush(cacheHourPrefix + strconv.FormatInt(chat.ID, 10))
 			setChatTimeCache()
