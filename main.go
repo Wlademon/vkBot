@@ -46,22 +46,28 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 		var messages = make(map[string]string)
 		for _, user := range users {
 			if existMessage, message := cache.Get("MESSAGES_" + user.GetApiName()); !existMessage {
+				fmt.Println("MESSAGE GET")
 				messages[user.GetApiName()] = api.BDateMessage(user)
 				err := cache.Create("MESSAGES_"+user.GetApiName(), messages[user.GetApiName()], defTime.Hour).Set()
 				if err != nil {
 					fmt.Println(err)
 				}
 			} else {
+				fmt.Println("MESSAGE exist")
 				messages[user.GetApiName()] = message
 			}
 		}
+		fmt.Println("Chats:", ChatId)
 		for key, ids := range ChatId {
+			fmt.Println(key, messages[key])
 			if messages[key] == "" {
 				continue
 			}
 			var message = messages[key]
+			fmt.Println(ids)
 			for _, id := range ids {
 				if exist, _ := cache.Get(cacheHourPrefix + strconv.Itoa(id)); !exist {
+					fmt.Println("CACHE not exist")
 					sId := strconv.Itoa(id)
 					hour := defHour
 					min := 0
@@ -70,17 +76,22 @@ func dRemember(bot *tgbotapi.BotAPI, users []api.UserApi) {
 						hour = HM[0]
 						min = HM[1]
 					}
+					fmt.Println(time.Now().Format("15:04:05"))
+					fmt.Println(hour, min)
 					if time.Now().Hour() >= hour && time.Now().Minute() >= min {
 						if id != 0 && len(message) != 0 {
 							fmt.Println("MESSAGE SEND")
 							msg := tgbotapi.NewMessage(int64(id), key+": \n"+message)
 							_, _ = bot.Send(msg)
 						}
+						fmt.Println("CREATE CACHE:")
 						err := cache.Create(cacheHourPrefix+strconv.Itoa(id), "sended", 23*defTime.Hour+59*defTime.Minute).Set()
 						if err != nil {
 							fmt.Println(err)
 						}
 					}
+				} else {
+					fmt.Println("CACHE  exist")
 				}
 			}
 		}
